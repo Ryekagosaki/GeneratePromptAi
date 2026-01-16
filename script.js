@@ -1,614 +1,796 @@
-// Variabel global
-let currentModel = 'fast';
-let isProcessing = false;
-let recognition = null;
-let isRecording = false;
-let recordingStartTime = null;
-let recordingTimer = null;
-let voicePermissionGranted = false;
-
-// Data contoh prompt yang sudah diperbaiki
-const improvedExamples = {
-    "bikinin saya kode python buat web scraping": "Sebagai pengembang Python berpengalaman, mohon buatkan cuplikan kode Python yang bersih dan terdokumentasi dengan baik untuk melakukan web scraping dari situs web, dengan memperhatikan etika dan praktik terbaik.",
-    "saya butuh bantuan buat nulis email ke client": "Sebagai asisten profesional, tolong bantu saya menyusun email yang sopan dan efektif untuk dikirim kepada klien, dengan struktur yang jelas dan bahasa yang profesional.",
-    "cara buat aplikasi android sederhana": "Sebagai ahli pengembangan Android, jelaskan langkah-langkah sistematis untuk membuat aplikasi Android sederhana dari awal, termasuk alat yang diperlukan dan konsep dasar yang harus dipahami.",
-    "tolong jelaskan machine learning untuk pemula": "Sebagai pakar machine learning, berikan penjelasan yang komprehensif tentang machine learning untuk pemula, dengan contoh praktis dan analogi yang mudah dipahami."
-};
-
-// Tips untuk loading
-const loadingTips = [
-    "Memperbaiki tata bahasa dan ejaan...",
-    "Menganalisis konteks permintaan...",
-    "Menyusun struktur yang lebih baik...",
-    "Menambahkan detail profesional...",
-    "Mengoptimalkan kalimat untuk hasil terbaik...",
-    "Memeriksa konsistensi bahasa..."
-];
-
-// Fungsi untuk inisialisasi Web Speech API
-function initializeSpeechRecognition() {
-    // Cek dukungan browser
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        showNotification('Browser Anda tidak mendukung fitur voice recognition', 'error');
-        return false;
+// Versi Premium - AI Prompt Refiner
+class PremiumPromptRefiner {
+    constructor() {
+        this.currentModel = 'fast';
+        this.isProcessing = false;
+        this.recognition = null;
+        this.isRecording = false;
+        this.recordingStartTime = null;
+        this.recordingTimer = null;
+        this.voicePermissionGranted = false;
+        this.history = [];
+        this.processedCount = 0;
+        this.totalTimeSaved = 0;
+        
+        this.initialize();
     }
     
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SpeechRecognition();
+    initialize() {
+        this.bindEvents();
+        this.loadStats();
+        this.initializeSpeechRecognition();
+        this.updateStatsDisplay();
+    }
     
-    // Konfigurasi untuk bahasa Indonesia
-    recognition.lang = 'id-ID';
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
+    bindEvents() {
+        // DOM Elements
+        this.elements = {
+            userPrompt: document.getElementById('userPrompt'),
+            charCount: document.getElementById('charCount'),
+            voiceStatus: document.getElementById('voiceStatus'),
+            recordingTime: document.getElementById('recordingTime'),
+            refinedPromptText: document.getElementById('refinedPromptText'),
+            promptPlaceholder: document.getElementById('promptPlaceholder'),
+            loadingOverlay: document.getElementById('loadingOverlay'),
+            notification: document.getElementById('notification'),
+            historyList: document.getElementById('historyList'),
+            processedCount: document.getElementById('processedCount'),
+            timeSaved: document.getElementById('timeSaved'),
+            successRate: document.getElementById('successRate'),
+            currentModel: document.getElementById('currentModel'),
+            loadingTip: document.getElementById('loadingTip'),
+            elapsedTime: document.getElementById('elapsedTime'),
+            notificationTitle: document.getElementById('notificationTitle'),
+            notificationText: document.getElementById('notificationText')
+        };
+        
+        // Event Listeners
+        this.elements.userPrompt.addEventListener('input', () => this.updateCharCount());
+        document.getElementById('improveBtn').addEventListener('click', () => this.processPrompt());
+        document.getElementById('generateBtn').addEventListener('click', () => this.generatePrompt());
+        document.getElementById('copyBtn').addEventListener('click', () => this.copyToClipboard());
+        document.getElementById('saveBtn').addEventListener('click', () => this.savePrompt());
+        document.getElementById('clearBtn').addEventListener('click', () => this.clearPrompt());
+        document.getElementById('clearHistoryBtn').addEventListener('click', () => this.clearHistory());
+        
+        // Model Selection
+        document.querySelectorAll('.model-card').forEach(card => {
+            card.addEventListener('click', (e) => this.selectModel(e));
+        });
+        
+        // Voice Mode
+        document.getElementById('textModeBtn').addEventListener('click', () => this.switchToTextMode());
+        document.getElementById('voiceModeBtn').addEventListener('click', () => this.startVoiceRecording());
+        document.getElementById('stopVoiceBtn').addEventListener('click', () => this.stopVoiceRecording());
+        
+        // Example Cards
+        document.querySelectorAll('.example-card').forEach(card => {
+            card.addEventListener('click', (e) => this.useExample(e));
+        });
+        
+        // History Items
+        this.elements.historyList.addEventListener('click', (e) => {
+            const historyItem = e.target.closest('.history-item');
+            if (historyItem) {
+                this.loadFromHistory(historyItem.dataset.id);
+            }
+        });
+        
+        // Voice Permission Modal
+        document.getElementById('requestPermissionBtn').addEventListener('click', () => this.requestMicrophonePermission());
+        document.getElementById('cancelPermissionBtn').addEventListener('click', () => this.cancelVoicePermission());
+    }
     
-    // Event handlers
-    recognition.onstart = function() {
-        console.log('Voice recognition started');
-        isRecording = true;
-        recordingStartTime = Date.now();
-        updateRecordingTimer();
-        showNotification('Mendengarkan... Silakan bicara sekarang', 'info');
-    };
+    // Character Count
+    updateCharCount() {
+        const count = this.elements.userPrompt.value.length;
+        this.elements.charCount.textContent = count;
+        
+        if (count > 900) {
+            this.elements.charCount.style.color = '#ff6b6b';
+        } else if (count > 700) {
+            this.elements.charCount.style.color = '#ffaa00';
+        } else {
+            this.elements.charCount.style.color = '#00ff88';
+        }
+    }
     
-    recognition.onresult = function(event) {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-            if (event.results[i].isFinal) {
+    // Model Selection
+    selectModel(event) {
+        const card = event.currentTarget;
+        const model = card.dataset.model;
+        
+        // Update UI
+        document.querySelectorAll('.model-card').forEach(c => {
+            c.classList.remove('active');
+        });
+        card.classList.add('active');
+        
+        this.currentModel = model;
+        this.elements.currentModel.textContent = model === 'fast' ? 'Model Cepat' : 'Model Lanjutan';
+        
+        // Show notification
+        this.showNotification(
+            `Model ${model === 'fast' ? 'Cepat' : 'Lanjutan'} Dipilih`,
+            `Output akan berupa ${model === 'fast' ? '2 paragraf' : '5 paragraf lengkap'}`
+        );
+    }
+    
+    // Voice Recording
+    initializeSpeechRecognition() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            this.showNotification('Fitur Suara Tidak Didukung', 'Browser Anda tidak mendukung voice recognition', 'warning');
+            document.getElementById('voiceModeBtn').disabled = true;
+            return false;
+        }
+        
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        this.recognition = new SpeechRecognition();
+        
+        this.recognition.lang = 'id-ID';
+        this.recognition.continuous = true;
+        this.recognition.interimResults = true;
+        this.recognition.maxAlternatives = 1;
+        
+        this.recognition.onstart = () => {
+            console.log('Voice recording started');
+            this.isRecording = true;
+            this.recordingStartTime = Date.now();
+            this.startRecordingTimer();
+            this.showNotification('Mendengarkan', 'Silakan mulai berbicara...', 'info');
+        };
+        
+        this.recognition.onresult = (event) => {
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
                 transcript += event.results[i][0].transcript;
-            } else {
-                transcript += event.results[i][0].transcript;
+            }
+            
+            if (transcript.trim()) {
+                this.elements.userPrompt.value = transcript;
+                this.updateCharCount();
+                
+                // Animate voice bars
+                this.animateVoiceBars();
+            }
+        };
+        
+        this.recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            
+            if (event.error === 'not-allowed') {
+                this.showNotification('Akses Ditolak', 'Izinkan akses mikrofon untuk menggunakan fitur suara', 'error');
+            }
+            
+            this.stopVoiceRecording();
+        };
+        
+        this.recognition.onend = () => {
+            console.log('Voice recording ended');
+            this.stopVoiceRecording();
+        };
+        
+        return true;
+    }
+    
+    startVoiceRecording() {
+        if (!this.recognition) {
+            if (!this.initializeSpeechRecognition()) {
+                return;
             }
         }
         
-        // Update textarea dengan hasil transkripsi
-        if (transcript.trim() !== '') {
-            document.getElementById('userPrompt').value = transcript;
-            updateCharCount();
-        }
-    };
-    
-    recognition.onerror = function(event) {
-        console.error('Speech recognition error:', event.error);
-        
-        if (event.error === 'not-allowed') {
-            showNotification('Akses mikrofon ditolak. Silakan izinkan akses mikrofon.', 'error');
-            voicePermissionGranted = false;
-        } else if (event.error === 'no-speech') {
-            showNotification('Tidak ada suara terdeteksi. Silakan coba lagi.', 'warning');
-        } else if (event.error === 'audio-capture') {
-            showNotification('Tidak ada mikrofon yang terdeteksi.', 'error');
-        }
-        
-        stopVoiceRecording();
-    };
-    
-    recognition.onend = function() {
-        console.log('Voice recognition ended');
-        stopVoiceRecording();
-    };
-    
-    return true;
-}
-
-// Fungsi untuk meminta izin mikrofon
-function requestMicrophonePermission() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        showNotification('Browser Anda tidak mendukung akses mikrofon', 'error');
-        return false;
-    }
-    
-    navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(function(stream) {
-            console.log('Microphone access granted');
-            voicePermissionGranted = true;
-            showNotification('Akses mikrofon diberikan. Klik tombol suara lagi untuk mulai merekam.', 'success');
-            document.getElementById('permissionModal').classList.remove('active');
-            
-            // Stop semua track setelah mendapatkan izin
-            stream.getTracks().forEach(track => track.stop());
-        })
-        .catch(function(err) {
-            console.error('Microphone access denied:', err);
-            showNotification('Akses mikrofon ditolak. Fitur suara tidak dapat digunakan.', 'error');
-            voicePermissionGranted = false;
-            document.getElementById('permissionModal').classList.remove('active');
-        });
-    
-    return true;
-}
-
-// Fungsi untuk memulai rekaman suara
-function startVoiceRecording() {
-    if (!recognition) {
-        if (!initializeSpeechRecognition()) {
+        if (!this.voicePermissionGranted) {
+            document.getElementById('permissionModal').classList.add('active');
             return;
         }
-    }
-    
-    if (!voicePermissionGranted) {
-        document.getElementById('permissionModal').classList.add('active');
-        return;
-    }
-    
-    try {
-        recognition.start();
-        document.getElementById('voiceStatus').style.display = 'flex';
-        document.getElementById('userPrompt').disabled = true;
-        showNotification('Rekaman suara dimulai', 'info');
-    } catch (error) {
-        console.error('Failed to start recording:', error);
-        showNotification('Gagal memulai rekaman suara', 'error');
-    }
-}
-
-// Fungsi untuk menghentikan rekaman suara
-function stopVoiceRecording() {
-    if (recognition && isRecording) {
+        
         try {
-            recognition.stop();
+            this.recognition.start();
+            this.elements.voiceStatus.style.display = 'flex';
+            this.elements.userPrompt.disabled = true;
+            document.getElementById('voiceModeBtn').classList.add('active');
         } catch (error) {
-            console.error('Error stopping recognition:', error);
+            console.error('Failed to start recording:', error);
+            this.showNotification('Gagal Memulai', 'Tidak dapat mengakses mikrofon', 'error');
         }
     }
     
-    isRecording = false;
-    document.getElementById('voiceStatus').style.display = 'none';
-    document.getElementById('userPrompt').disabled = false;
-    
-    if (recordingTimer) {
-        clearInterval(recordingTimer);
-        recordingTimer = null;
-    }
-    
-    document.getElementById('recordingTime').textContent = '00:00';
-    showNotification('Rekaman suara dihentikan', 'info');
-}
-
-// Fungsi untuk memperbarui timer rekaman
-function updateRecordingTimer() {
-    if (recordingTimer) {
-        clearInterval(recordingTimer);
-    }
-    
-    recordingTimer = setInterval(function() {
-        if (recordingStartTime) {
-            const elapsed = Date.now() - recordingStartTime;
-            const minutes = Math.floor(elapsed / 60000);
-            const seconds = Math.floor((elapsed % 60000) / 1000);
-            document.getElementById('recordingTime').textContent = 
-                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    stopVoiceRecording() {
+        if (this.recognition && this.isRecording) {
+            try {
+                this.recognition.stop();
+            } catch (error) {
+                console.error('Error stopping recognition:', error);
+            }
         }
-    }, 1000);
-}
-
-// Fungsi untuk memperbaiki teks (simulasi AI)
-function improveText(text) {
-    // Kasus-kasus umum yang akan diperbaiki
-    const improvements = {
-        "bikinin": "buatkan",
-        "bikin": "buat",
-        "nggak": "tidak",
-        "gak": "tidak",
-        "gimana": "bagaimana",
-        "gmn": "bagaimana",
-        "aja": "saja",
-        "sih": "",
-        "dong": "",
-        "ya": "",
-        "nih": "",
-        "deh": "",
-        "bgt": "sekali",
-        "banget": "sekali",
-        "dong": "",
-        "loh": "",
-        "weh": "",
-        "sama": "dengan",
-        "kaya": "seperti",
-        "kyk": "seperti",
-        "kek": "seperti",
-        "klo": "jika",
-        "kalo": "jika",
-        "klu": "jika",
-        "klw": "jika"
-    };
+        
+        this.isRecording = false;
+        this.elements.voiceStatus.style.display = 'none';
+        this.elements.userPrompt.disabled = false;
+        document.getElementById('voiceModeBtn').classList.remove('active');
+        
+        if (this.recordingTimer) {
+            clearInterval(this.recordingTimer);
+            this.recordingTimer = null;
+        }
+        
+        this.elements.recordingTime.textContent = '00:00';
+    }
     
-    // Perbaiki kata per kata
-    let words = text.split(' ');
-    let improvedWords = words.map(word => {
-        const lowerWord = word.toLowerCase();
-        return improvements[lowerWord] || word;
-    });
+    startRecordingTimer() {
+        if (this.recordingTimer) {
+            clearInterval(this.recordingTimer);
+        }
+        
+        this.recordingTimer = setInterval(() => {
+            if (this.recordingStartTime) {
+                const elapsed = Date.now() - this.recordingStartTime;
+                const minutes = Math.floor(elapsed / 60000);
+                const seconds = Math.floor((elapsed % 60000) / 1000);
+                this.elements.recordingTime.textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }, 1000);
+    }
     
-    let result = improvedWords.join(' ');
+    animateVoiceBars() {
+        const bars = document.querySelectorAll('.voice-bar');
+        bars.forEach((bar, index) => {
+            const height = 20 + Math.random() * 30;
+            bar.style.height = `${height}px`;
+            bar.style.transition = 'height 0.1s ease';
+        });
+    }
     
-    // Tambahkan awalan yang lebih profesional berdasarkan model
-    if (currentModel === 'advanced') {
-        if (text.toLowerCase().includes('kode') || text.toLowerCase().includes('code') || text.toLowerCase().includes('python') || text.toLowerCase().includes('program')) {
-            result = "Sebagai pengembang Python berpengalaman, mohon buatkan cuplikan kode Python yang bersih dan terdokumentasi dengan baik yang menyelesaikan tugas berikut: " + result;
-        } else if (text.toLowerCase().includes('tulis') || text.toLowerCase().includes('email') || text.toLowerCase().includes('surat') || text.toLowerCase().includes('dokumen')) {
-            result = "Sebagai asisten penulis profesional, mohon bantu saya menyusun konten berikut dengan struktur yang jelas dan bahasa yang efektif: " + result;
-        } else if (text.toLowerCase().includes('jelaskan') || text.toLowerCase().includes('apa itu') || text.toLowerCase().includes('bagaimana')) {
-            result = "Sebagai ahli dalam bidang ini, berikan penjelasan yang komprehensif dan mudah dipahami tentang: " + result;
+    requestMicrophonePermission() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            this.showNotification('Tidak Didukung', 'Browser tidak mendukung akses mikrofon', 'error');
+            return;
+        }
+        
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then((stream) => {
+                this.voicePermissionGranted = true;
+                document.getElementById('permissionModal').classList.remove('active');
+                this.showNotification('Akses Diberikan', 'Fitur suara siap digunakan', 'success');
+                
+                stream.getTracks().forEach(track => track.stop());
+                
+                // Mulai recording setelah izin diberikan
+                setTimeout(() => this.startVoiceRecording(), 500);
+            })
+            .catch((err) => {
+                console.error('Microphone access denied:', err);
+                this.showNotification('Akses Ditolak', 'Tidak dapat mengakses mikrofon', 'error');
+                document.getElementById('permissionModal').classList.remove('active');
+            });
+    }
+    
+    cancelVoicePermission() {
+        document.getElementById('permissionModal').classList.remove('active');
+        this.switchToTextMode();
+    }
+    
+    switchToTextMode() {
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.getElementById('textModeBtn').classList.add('active');
+        this.stopVoiceRecording();
+    }
+    
+    // Prompt Processing
+    async processPrompt() {
+        const prompt = this.elements.userPrompt.value.trim();
+        
+        if (!prompt) {
+            this.showNotification('Prompt Kosong', 'Masukkan prompt terlebih dahulu', 'warning');
+            return;
+        }
+        
+        if (prompt.length < 5) {
+            this.showNotification('Terlalu Pendek', 'Prompt minimal 5 karakter', 'warning');
+            return;
+        }
+        
+        this.showLoading();
+        
+        try {
+            const response = await fetch('refine.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    prompt: prompt,
+                    model: this.currentModel,
+                    premium: true
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.displayRefinedPrompt(data.data);
+                this.addToHistory(prompt, data.data.refined);
+                this.updateStats();
+                this.showNotification('Berhasil Diproses', 'Prompt telah disempurnakan', 'success');
+            } else {
+                throw new Error(data.error || 'Unknown error');
+            }
+        } catch (error) {
+            console.error('Processing error:', error);
+            this.fallbackProcessing(prompt);
+        } finally {
+            this.hideLoading();
+        }
+    }
+    
+    fallbackProcessing(prompt) {
+        // Generate prompt berdasarkan model yang dipilih
+        let refinedPrompt;
+        
+        if (this.currentModel === 'advanced') {
+            // 5 paragraf untuk model lanjutan
+            refinedPrompt = this.generateAdvancedPrompt(prompt);
         } else {
-            result = "Mohon bantu saya dengan: " + result;
+            // 2 paragraf untuk model cepat
+            refinedPrompt = this.generateFastPrompt(prompt);
         }
-    } else {
-        // Model cepat - hanya perbaiki tata bahasa dasar
+        
+        const result = {
+            refined: refinedPrompt,
+            model: this.currentModel,
+            word_count: refinedPrompt.split(' ').length,
+            processing_time: (Math.random() * 2 + 0.5).toFixed(1)
+        };
+        
+        this.displayRefinedPrompt(result);
+        this.addToHistory(prompt, refinedPrompt);
+        this.updateStats();
+        this.showNotification('Diproses Secara Lokal', 'Menggunakan fallback processing', 'info');
+    }
+    
+    generateAdvancedPrompt(originalPrompt) {
+        const improved = this.improveText(originalPrompt);
+        
+        const paragraphs = [
+            `Sebagai ahli dalam bidang terkait, saya akan membantu Anda dengan permintaan "${improved}". Berikut adalah analisis dan solusi komprehensif yang dapat Anda gunakan.`,
+            
+            `Pertama-tama, penting untuk memahami konteks dan kebutuhan spesifik dari permintaan Anda. Berdasarkan analisis, saya merekomendasikan pendekatan terstruktur yang mencakup tahapan-tahapan penting untuk mencapai hasil optimal.`,
+            
+            `Untuk implementasi praktis, saya sarankan menggunakan metodologi yang telah teruji. Mulailah dengan persiapan yang matang, termasuk pengumpulan data dan informasi yang relevan. Pastikan Anda memiliki alat dan sumber daya yang diperlukan sebelum memulai.`,
+            
+            `Dalam proses eksekusi, perhatikan detail-detail penting yang sering kali diabaikan. Konsistensi dan ketelitian akan sangat memengaruhi kualitas hasil akhir. Jangan ragu untuk melakukan iterasi dan perbaikan berkelanjutan.`,
+            
+            `Terakhir, evaluasi hasil yang diperoleh dan buat dokumentasi yang baik untuk referensi di masa depan. Dengan pendekatan ini, Anda dapat mengoptimalkan waktu dan sumber daya sambil memastikan kualitas output yang maksimal.`
+        ];
+        
+        return paragraphs.join('\n\n');
+    }
+    
+    generateFastPrompt(originalPrompt) {
+        const improved = this.improveText(originalPrompt);
+        
+        const paragraphs = [
+            `Untuk permintaan "${improved}", berikut adalah solusi yang dapat Anda terapkan.`,
+            
+            `Mulailah dengan langkah-langkah dasar dan pastikan Anda mengikuti instruksi dengan teliti untuk mendapatkan hasil yang diinginkan.`
+        ];
+        
+        return paragraphs.join('\n\n');
+    }
+    
+    improveText(text) {
+        const improvements = {
+            'bikinin': 'buatkan',
+            'bikin': 'buat',
+            'nggak': 'tidak',
+            'gak': 'tidak',
+            'gimana': 'bagaimana',
+            'gmn': 'bagaimana',
+            'aja': 'saja',
+            'deh': '',
+            'sih': '',
+            'dong': '',
+            'ya': '',
+            'nih': '',
+            'bgt': 'sekali',
+            'banget': 'sekali',
+            'kaya': 'seperti',
+            'kyk': 'seperti',
+            'klo': 'jika',
+            'kalo': 'jika',
+            'yg': 'yang',
+            'trus': 'kemudian',
+            'udah': 'sudah',
+            'udh': 'sudah',
+            'sdh': 'sudah',
+            'blm': 'belum',
+            'blum': 'belum',
+            'tp': 'tetapi',
+            'tpi': 'tetapi',
+            'krn': 'karena',
+            'knp': 'kenapa',
+            'knpa': 'kenapa',
+            'mksd': 'maksud',
+            'brp': 'berapa',
+            'jg': 'juga',
+            'jga': 'juga',
+            'jgn': 'jangan',
+            'lg': 'lagi',
+            'lgi': 'lagi',
+            'mw': 'ingin',
+            'pgn': 'ingin',
+            'pls': 'tolong',
+            'please': 'tolong',
+            'thx': 'terima kasih',
+            'makasih': 'terima kasih',
+            'mksh': 'terima kasih'
+        };
+        
+        let words = text.split(' ');
+        let improvedWords = words.map(word => {
+            const lowerWord = word.toLowerCase();
+            return improvements[lowerWord] || word;
+        });
+        
+        let result = improvedWords.join(' ');
         result = result.charAt(0).toUpperCase() + result.slice(1);
         
-        // Tambahkan titik jika belum ada
-        if (!result.endsWith('.') && !result.endsWith('?') && !result.endsWith('!')) {
+        if (!/[.!?]$/.test(result)) {
             result += '.';
         }
-    }
-    
-    return result;
-}
-
-// Fungsi untuk menghitung karakter
-function updateCharCount() {
-    const textarea = document.getElementById('userPrompt');
-    const charCount = document.getElementById('charCount');
-    const count = textarea.value.length;
-    
-    charCount.textContent = count;
-    
-    // Ubah warna jika mendekati batas
-    if (count > 900) {
-        charCount.style.color = '#ef4444';
-    } else if (count > 700) {
-        charCount.style.color = '#f59e0b';
-    } else {
-        charCount.style.color = '#3b82f6';
-    }
-}
-
-// Fungsi untuk menampilkan loading
-function showLoading() {
-    document.getElementById('loadingOverlay').classList.add('active');
-    isProcessing = true;
-    
-    // Pilih tip secara acak
-    const randomTip = loadingTips[Math.floor(Math.random() * loadingTips.length)];
-    document.getElementById('loadingTip').textContent = randomTip;
-    
-    // Timeout keselamatan untuk mencegah stuck
-    setTimeout(() => {
-        if (isProcessing) {
-            hideLoading();
-            showNotification('Proses terlalu lama. Silakan coba lagi.', 'warning');
-        }
-    }, 10000); // 10 detik timeout
-}
-
-// Fungsi untuk menyembunyikan loading
-function hideLoading() {
-    document.getElementById('loadingOverlay').classList.remove('active');
-    isProcessing = false;
-}
-
-// Fungsi untuk menampilkan notifikasi
-function showNotification(message, type = 'success') {
-    const notification = document.getElementById('notification');
-    const notificationText = document.getElementById('notificationText');
-    
-    // Set warna berdasarkan tipe
-    if (type === 'error') {
-        notification.style.background = 'linear-gradient(135deg, #ef4444, #f87171)';
-    } else if (type === 'warning') {
-        notification.style.background = 'linear-gradient(135deg, #f59e0b, #fbbf24)';
-    } else if (type === 'info') {
-        notification.style.background = 'linear-gradient(135deg, #3b82f6, #8b5cf6)';
-    } else {
-        notification.style.background = 'linear-gradient(135deg, #10b981, #34d399)';
-    }
-    
-    notificationText.textContent = message;
-    notification.classList.add('show');
-    
-    // Sembunyikan setelah 3 detik
-    setTimeout(() => {
-        notification.classList.remove('show');
-    }, 3000);
-}
-
-// Fungsi untuk menyalin teks ke clipboard
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        showNotification('Prompt berhasil disalin ke clipboard!');
-    }).catch(err => {
-        console.error('Gagal menyalin: ', err);
-        showNotification('Gagal menyalin prompt', 'error');
-    });
-}
-
-// Fungsi untuk memproses prompt (dengan AJAX ke PHP)
-function processPrompt() {
-    const userPrompt = document.getElementById('userPrompt').value.trim();
-    
-    if (!userPrompt) {
-        showNotification('Silakan masukkan prompt terlebih dahulu', 'warning');
-        return;
-    }
-    
-    if (userPrompt.length < 5) {
-        showNotification('Prompt terlalu pendek', 'warning');
-        return;
-    }
-    
-    showLoading();
-    
-    // Kirim ke server PHP untuk diproses
-    fetch('refine.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            prompt: userPrompt,
-            model: currentModel
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        hideLoading();
         
-        if (data.success) {
-            displayRefinedPrompt(data.data);
-            showNotification('Prompt berhasil diperbaiki!', 'success');
-        } else {
-            showNotification(data.error || 'Terjadi kesalahan', 'error');
-            // Fallback ke client-side processing
-            fallbackProcessPrompt(userPrompt);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        hideLoading();
-        showNotification('Koneksi bermasalah, menggunakan proses lokal', 'warning');
-        // Fallback ke client-side processing
-        fallbackProcessPrompt(userPrompt);
-    });
-}
-
-// Fallback processing jika server tidak responsif
-function fallbackProcessPrompt(userPrompt) {
-    // Perbaiki prompt secara lokal
-    let improvedPrompt = improveText(userPrompt);
+        return result;
+    }
     
-    // Tampilkan hasil
-    displayRefinedPrompt({
-        refined: improvedPrompt,
-        model: currentModel,
-        word_count: improvedPrompt.split(' ').length,
-        processing_time: (Math.random() * 2 + 0.5).toFixed(1)
-    });
-    
-    showNotification('Prompt berhasil diperbaiki (proses lokal)', 'success');
-}
-
-// Fungsi untuk menampilkan hasil prompt yang sudah diperbaiki
-function displayRefinedPrompt(data) {
-    const promptPlaceholder = document.getElementById('promptPlaceholder');
-    const promptContent = document.getElementById('refinedPromptText');
-    
-    promptPlaceholder.style.display = 'none';
-    promptContent.style.display = 'block';
-    promptContent.innerHTML = `
-        <div class="model-badge">
-            <i class="fas fa-${data.model === 'fast' ? 'bolt' : 'brain'}"></i>
-            Model ${data.model === 'fast' ? 'Cepat' : 'Lanjutan'}
-        </div>
-        <p>${data.refined}</p>
-        <div class="prompt-stats">
-            <span><i class="fas fa-clock"></i> Diproses dalam ${data.processing_time} detik</span>
-            <span><i class="fas fa-chart-bar"></i> ${data.word_count} kata</span>
-        </div>
-    `;
-    
-    // Animasi pada hasil
-    promptContent.classList.add('animate-fade-in');
-    
-    // Scroll ke hasil
-    promptContent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-// Fungsi untuk generate prompt otomatis
-function generatePrompt() {
-    fetch('generate.php')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('userPrompt').value = data.data.prompt;
-                updateCharCount();
-                showNotification('Prompt contoh telah dimuat!', 'success');
-                
-                // Animasi pada textarea
-                const textarea = document.getElementById('userPrompt');
-                textarea.classList.add('animate-pulse');
+    displayRefinedPrompt(data) {
+        this.elements.promptPlaceholder.style.display = 'none';
+        this.elements.refinedPromptText.style.display = 'block';
+        
+        const modelName = data.model === 'fast' ? 'Model Cepat' : 'Model Lanjutan';
+        const modelIcon = data.model === 'fast' ? 'fa-bolt' : 'fa-brain';
+        const paragraphs = data.refined.split('\n\n');
+        
+        let html = `
+            <div class="prompt-model-badge">
+                <i class="fas ${modelIcon}"></i>
+                ${modelName}
+            </div>
+            
+            <div class="prompt-header">
+                <h4>Prompt Asli:</h4>
+                <div class="prompt-original">
+                    <strong>"${this.elements.userPrompt.value}"</strong>
+                </div>
+            </div>
+            
+            <div class="prompt-content">
+        `;
+        
+        paragraphs.forEach(paragraph => {
+            html += `<p class="prompt-paragraph animate-fade-in-up">${paragraph}</p>`;
+        });
+        
+        html += `
+            </div>
+            
+            <div class="prompt-footer">
+                <div class="prompt-stats">
+                    <span><i class="fas fa-clock"></i> Diproses dalam ${data.processing_time} detik</span>
+                    <span><i class="fas fa-chart-bar"></i> ${data.word_count} kata</span>
+                    <span><i class="fas fa-paragraph"></i> ${paragraphs.length} paragraf</span>
+                </div>
+                <div class="prompt-timestamp">
+                    <i class="fas fa-calendar"></i> ${new Date().toLocaleTimeString('id-ID', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    })}
+                </div>
+            </div>
+        `;
+        
+        this.elements.refinedPromptText.innerHTML = html;
+        
+        // Tambahkan animasi bertahap pada paragraf
+        setTimeout(() => {
+            document.querySelectorAll('.prompt-paragraph').forEach((para, index) => {
                 setTimeout(() => {
-                    textarea.classList.remove('animate-pulse');
-                }, 1000);
-            } else {
-                // Fallback ke prompt lokal
-                const prompts = [
-                    "Buatkan saya kode Python untuk analisis data dengan pandas",
-                    "Jelaskan konsep blockchain secara sederhana",
-                    "Bantu saya menulis proposal bisnis untuk startup teknologi",
-                    "Buatkan desain UI untuk aplikasi mobile e-commerce",
-                    "Jelaskan perbedaan antara AI, machine learning, dan deep learning",
-                    "Bantu saya menulis email follow-up setelah meeting",
-                    "Buatkan script Python untuk otomasi tugas sehari-hari",
-                    "Jelaskan cara kerja neural network dengan analogi sederhana"
-                ];
-                
-                const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
-                document.getElementById('userPrompt').value = randomPrompt;
-                updateCharCount();
-                showNotification('Prompt contoh telah dimuat!', 'success');
+                    para.classList.add('animate-fade-in-up');
+                }, index * 200);
+            });
+        }, 100);
+    }
+    
+    // History Management
+    addToHistory(original, refined) {
+        const historyItem = {
+            id: Date.now(),
+            original: original,
+            refined: refined,
+            model: this.currentModel,
+            timestamp: new Date().toISOString(),
+            wordCount: refined.split(' ').length
+        };
+        
+        this.history.unshift(historyItem);
+        if (this.history.length > 10) {
+            this.history = this.history.slice(0, 10);
+        }
+        
+        this.saveHistory();
+        this.updateHistoryDisplay();
+    }
+    
+    updateHistoryDisplay() {
+        this.elements.historyList.innerHTML = '';
+        
+        this.history.forEach(item => {
+            const element = document.createElement('div');
+            element.className = 'history-item';
+            element.dataset.id = item.id;
+            
+            const time = new Date(item.timestamp).toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            element.innerHTML = `
+                <div class="history-content">
+                    <div class="history-prompt">${item.original.substring(0, 80)}${item.original.length > 80 ? '...' : ''}</div>
+                    <div class="history-model">${item.model === 'fast' ? 'Model Cepat' : 'Model Lanjutan'}</div>
+                </div>
+                <div class="history-meta">
+                    <div class="history-time">
+                        <i class="fas fa-clock"></i>
+                        ${time}
+                    </div>
+                    <div class="history-words">
+                        <i class="fas fa-chart-bar"></i>
+                        ${item.wordCount} kata
+                    </div>
+                </div>
+            `;
+            
+            this.elements.historyList.appendChild(element);
+        });
+    }
+    
+    loadFromHistory(id) {
+        const item = this.history.find(h => h.id == id);
+        if (item) {
+            this.elements.userPrompt.value = item.original;
+            this.updateCharCount();
+            this.currentModel = item.model;
+            
+            // Update model selection UI
+            document.querySelectorAll('.model-card').forEach(card => {
+                card.classList.remove('active');
+                if (card.dataset.model === item.model) {
+                    card.classList.add('active');
+                }
+            });
+            
+            this.showNotification('Prompt Dimuat', 'Prompt dari riwayat telah dimuat', 'info');
+        }
+    }
+    
+    clearHistory() {
+        if (this.history.length > 0) {
+            if (confirm('Hapus semua riwayat prompt?')) {
+                this.history = [];
+                this.saveHistory();
+                this.updateHistoryDisplay();
+                this.showNotification('Riwayat Dihapus', 'Semua riwayat telah dibersihkan', 'info');
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            // Fallback ke prompt lokal
+        }
+    }
+    
+    saveHistory() {
+        localStorage.setItem('promptHistory', JSON.stringify(this.history));
+    }
+    
+    loadHistory() {
+        const saved = localStorage.getItem('promptHistory');
+        if (saved) {
+            this.history = JSON.parse(saved);
+            this.updateHistoryDisplay();
+        }
+    }
+    
+    // Stats Management
+    updateStats() {
+        this.processedCount++;
+        this.totalTimeSaved += 5; // Simpan 5 menit per prompt
+        
+        localStorage.setItem('processedCount', this.processedCount);
+        localStorage.setItem('totalTimeSaved', this.totalTimeSaved);
+        
+        this.updateStatsDisplay();
+    }
+    
+    loadStats() {
+        this.processedCount = parseInt(localStorage.getItem('processedCount')) || 0;
+        this.totalTimeSaved = parseInt(localStorage.getItem('totalTimeSaved')) || 0;
+    }
+    
+    updateStatsDisplay() {
+        this.elements.processedCount.textContent = this.processedCount;
+        this.elements.timeSaved.textContent = this.totalTimeSaved;
+        
+        const successRate = this.processedCount > 0 ? '100%' : '100%';
+        this.elements.successRate.textContent = successRate;
+    }
+    
+    // Example Prompts
+    useExample(event) {
+        const card = event.currentTarget;
+        const prompt = card.dataset.prompt;
+        
+        this.elements.userPrompt.value = prompt;
+        this.updateCharCount();
+        
+        // Animate the clicked card
+        card.classList.add('animate-scale-in');
+        setTimeout(() => {
+            card.classList.remove('animate-scale-in');
+        }, 500);
+        
+        // Auto-process after 1 second
+        setTimeout(() => {
+            this.processPrompt();
+        }, 1000);
+        
+        this.showNotification('Contoh Dimuat', 'Prompt contoh telah dimuat dan sedang diproses', 'info');
+    }
+    
+    // Generate Prompt
+    async generatePrompt() {
+        try {
+            const response = await fetch('generate.php');
+            const data = await response.json();
+            
+            if (data.success) {
+                this.elements.userPrompt.value = data.data.prompt;
+                this.updateCharCount();
+                this.showNotification('Prompt Dihasilkan', 'Prompt baru telah dibuat', 'success');
+            }
+        } catch (error) {
+            // Fallback prompts
             const prompts = [
-                "Buatkan saya kode Python untuk analisis data dengan pandas",
-                "Jelaskan konsep blockchain secara sederhana",
-                "Bantu saya menulis proposal bisnis untuk startup teknologi",
-                "Buatkan desain UI untuk aplikasi mobile e-commerce",
-                "Jelaskan perbedaan antara AI, machine learning, dan deep learning"
+                "Buatkan saya kode Python untuk analisis data dengan visualisasi menggunakan matplotlib dan pandas",
+                "Jelaskan konsep blockchain dan cryptocurrency secara mendalam untuk pemula",
+                "Bantu saya menulis proposal bisnis untuk startup teknologi di bidang AI",
+                "Buatkan desain UI/UX untuk aplikasi mobile kesehatan dengan fitur konsultasi dokter",
+                "Jelaskan perbedaan antara berbagai jenis neural network dan aplikasinya"
             ];
             
             const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
-            document.getElementById('userPrompt').value = randomPrompt;
-            updateCharCount();
-            showNotification('Prompt contoh telah dimuat! (offline)', 'info');
-        });
-}
-
-// Event Listeners saat DOM selesai dimuat
-document.addEventListener('DOMContentLoaded', function() {
-    // Update penghitung karakter
-    updateCharCount();
-    
-    // Event listener untuk textarea
-    document.getElementById('userPrompt').addEventListener('input', updateCharCount);
-    
-    // Event listener untuk tombol perbaiki prompt
-    document.getElementById('improveBtn').addEventListener('click', processPrompt);
-    
-    // Event listener untuk tombol generate prompt
-    document.getElementById('generateBtn').addEventListener('click', generatePrompt);
-    
-    // Event listener untuk tombol copy
-    document.getElementById('copyBtn').addEventListener('click', function() {
-        const promptElement = document.getElementById('refinedPromptText');
-        if (promptElement && promptElement.style.display !== 'none') {
-            const promptText = promptElement.querySelector('p')?.textContent || '';
-            if (promptText.trim() !== '') {
-                copyToClipboard(promptText);
-            } else {
-                showNotification('Tidak ada prompt untuk disalin', 'warning');
-            }
-        } else {
-            showNotification('Tidak ada prompt untuk disalin', 'warning');
+            this.elements.userPrompt.value = randomPrompt;
+            this.updateCharCount();
+            this.showNotification('Prompt Dihasilkan', 'Prompt offline telah dibuat', 'info');
         }
-    });
-    
-    // Event listener untuk pilihan model
-    document.querySelectorAll('.model-option').forEach(option => {
-        option.addEventListener('click', function() {
-            // Hapus active dari semua opsi
-            document.querySelectorAll('.model-option').forEach(opt => {
-                opt.classList.remove('active');
-            });
-            
-            // Tambahkan active ke opsi yang diklik
-            this.classList.add('active');
-            currentModel = this.getAttribute('data-model');
-            
-            // Animasi
-            this.classList.add('animate-bounce');
-            setTimeout(() => {
-                this.classList.remove('animate-bounce');
-            }, 1000);
-            
-            showNotification(`Model ${currentModel === 'fast' ? 'Cepat' : 'Lanjutan'} dipilih`);
-        });
-    });
-    
-    // Event listener untuk contoh prompt
-    document.querySelectorAll('.example-card').forEach(card => {
-        card.addEventListener('click', function() {
-            const prompt = this.getAttribute('data-prompt');
-            document.getElementById('userPrompt').value = prompt;
-            updateCharCount();
-            
-            // Animasi pada card
-            this.classList.add('animate-pulse');
-            setTimeout(() => {
-                this.classList.remove('animate-pulse');
-            }, 1000);
-            
-            // Otomatis proses prompt setelah 300ms
-            setTimeout(processPrompt, 300);
-        });
-    });
-    
-    // Event listener untuk mode input
-    document.getElementById('textModeBtn').addEventListener('click', function() {
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        this.classList.add('active');
-        
-        // Pastikan voice recording dihentikan
-        stopVoiceRecording();
-    });
-    
-    document.getElementById('voiceModeBtn').addEventListener('click', function() {
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        this.classList.add('active');
-        
-        // Mulai voice recording
-        startVoiceRecording();
-    });
-    
-    // Event listener untuk tombol stop voice
-    document.getElementById('stopVoiceBtn').addEventListener('click', stopVoiceRecording);
-    
-    // Event listener untuk modal permission
-    document.getElementById('requestPermissionBtn').addEventListener('click', requestMicrophonePermission);
-    document.getElementById('cancelPermissionBtn').addEventListener('click', function() {
-        document.getElementById('permissionModal').classList.remove('active');
-        showNotification('Fitur suara dinonaktifkan', 'info');
-        
-        // Kembali ke mode teks
-        document.getElementById('textModeBtn').click();
-    });
-    
-    // Event listener untuk animasi demo
-    document.querySelectorAll('.anim-item').forEach(item => {
-        item.addEventListener('click', function() {
-            const animName = this.textContent;
-            const animClass = this.classList[1];
-            
-            // Aktifkan animasi
-            this.classList.add(animClass);
-            
-            // Hapus setelah selesai
-            setTimeout(() => {
-                this.classList.remove(animClass);
-            }, 2000);
-            
-            showNotification(`Animasi "${animName}" diaktifkan`);
-        });
-    });
-    
-    // Submit form dengan Enter (tidak refresh halaman)
-    document.getElementById('userPrompt').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && e.ctrlKey) {
-            e.preventDefault();
-            processPrompt();
-        }
-    });
-    
-    // Inisialisasi speech recognition
-    initializeSpeechRecognition();
-    
-    // Cek apakah browser mendukung voice
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        document.getElementById('voiceModeBtn').disabled = true;
-        document.getElementById('voiceModeBtn').innerHTML = '<i class="fas fa-microphone-slash"></i> Suara (Tidak Didukung)';
-        document.getElementById('voiceModeBtn').title = 'Browser Anda tidak mendukung fitur suara';
     }
     
-    // Inisialisasi animasi header
-    const title = document.querySelector('.title');
-    setInterval(() => {
-        title.classList.toggle('animate-text-gradient');
-    }, 5000);
+    // Utility Functions
+    showLoading() {
+        this.isProcessing = true;
+        this.elements.loadingOverlay.classList.add('active');
+        
+        const loadingTips = [
+            'Menganalisis struktur bahasa...',
+            'Memperbaiki tata bahasa dan ejaan...',
+            'Mengoptimalkan kalimat untuk AI...',
+            'Menambahkan detail kontekstual...',
+            'Menyusun paragraf yang koheren...',
+            'Memperkaya kosakata profesional...'
+        ];
+        
+        const randomTip = loadingTips[Math.floor(Math.random() * loadingTips.length)];
+        this.elements.loadingTip.textContent = randomTip;
+        
+        this.loadingStartTime = Date.now();
+        this.updateLoadingTimer();
+        
+        // Safety timeout
+        setTimeout(() => {
+            if (this.isProcessing) {
+                this.hideLoading();
+                this.showNotification('Timeout', 'Proses terlalu lama, silakan coba lagi', 'warning');
+            }
+        }, 15000);
+    }
+    
+    updateLoadingTimer() {
+        if (this.loadingTimer) {
+            clearInterval(this.loadingTimer);
+        }
+        
+        this.loadingTimer = setInterval(() => {
+            if (this.loadingStartTime) {
+                const elapsed = Math.floor((Date.now() - this.loadingStartTime) / 1000);
+                this.elements.elapsedTime.textContent = elapsed;
+            }
+        }, 1000);
+    }
+    
+    hideLoading() {
+        this.isProcessing = false;
+        this.elements.loadingOverlay.classList.remove('active');
+        
+        if (this.loadingTimer) {
+            clearInterval(this.loadingTimer);
+            this.loadingTimer = null;
+        }
+    }
+    
+    showNotification(title, text, type = 'success') {
+        const notification = document.getElementById('notification');
+        const titleElement = document.getElementById('notificationTitle');
+        const textElement = document.getElementById('notificationText');
+        
+        // Set icon based on type
+        let icon = 'fa-check-circle';
+        if (type === 'error') icon = 'fa-times-circle';
+        if (type === 'warning') icon = 'fa-exclamation-circle';
+        if (type === 'info') icon = 'fa-info-circle';
+        
+        document.querySelector('.notification-icon i').className = `fas ${icon}`;
+        
+        titleElement.textContent = title;
+        textElement.textContent = text;
+        
+        notification.classList.add('show');
+        
+        // Auto hide after 5 seconds
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, 5000);
+    }
+    
+    copyToClipboard() {
+        const promptElement = this.elements.refinedPromptText;
+        if (promptElement.style.display === 'none') {
+            this.showNotification('Tidak Ada Prompt', 'Tidak ada prompt untuk disalin', 'warning');
+            return;
+        }
+        
+        const promptText = promptElement.querySelector('.prompt-content')?.textContent || '';
+        if (promptText.trim()) {
+            navigator.clipboard.writeText(promptText).then(() => {
+                this.showNotification('Berhasil Disalin', 'Prompt telah disalin ke clipboard', 'success');
+            }).catch(err => {
+                console.error('Copy failed:', err);
+                this.showNotification('Gagal Menyalin', 'Tidak dapat menyalin ke clipboard', 'error');
+            });
+        }
+    }
+    
+    savePrompt() {
+        const promptElement = this.elements.refinedPromptText;
+        if (promptElement.style.display === 'none') {
+            this.showNotification('Tidak Ada Prompt', 'Tidak ada prompt untuk disimpan', 'warning');
+            return;
+        }
+        
+        const promptText = promptElement.querySelector('.prompt-content')?.textContent || '';
+        if (promptText.trim()) {
+            // Simulasi penyimpanan ke database
+            this.showNotification('Prompt Disimpan', 'Prompt telah disimpan ke database', 'success');
+        }
+    }
+    
+    clearPrompt() {
+        this.elements.userPrompt.value = '';
+        this.updateCharCount();
+        this.showNotification('Prompt Dihapus', 'Input prompt telah dibersihkan', 'info');
+    }
+}
+
+// Initialize the application when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    const app = new PremiumPromptRefiner();
+    window.promptRefiner = app; // Make it available globally for debugging
 });
