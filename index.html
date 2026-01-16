@@ -3,234 +3,441 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Prompt Refiner & Generator - By Rabs</title>
+    <title>AI Prompt Refiner Premium</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Background animasi -->
-    <div class="background-animation">
-        <div class="bg-particle particle-1"></div>
-        <div class="bg-particle particle-2"></div>
-        <div class="bg-particle particle-3"></div>
-        <div class="bg-particle particle-4"></div>
-        <div class="bg-particle particle-5"></div>
-        <div class="bg-particle particle-6"></div>
+    <!-- Background animasi premium -->
+    <div class="premium-background">
+        <div class="animated-bg-element elem1"></div>
+        <div class="animated-bg-element elem2"></div>
+        <div class="animated-bg-element elem3"></div>
+        <div class="animated-bg-element elem4"></div>
+        <div class="animated-bg-element elem5"></div>
+        <div class="animated-bg-element elem6"></div>
+        <div class="animated-bg-element elem7"></div>
+        <div class="animated-bg-element elem8"></div>
+        <div class="animated-bg-element elem9"></div>
+        <div class="animated-bg-element elem10"></div>
+        <div class="floating-data data1">🤖</div>
+        <div class="floating-data data2">💡</div>
+        <div class="floating-data data3">⚡</div>
+        <div class="floating-data data4">✨</div>
+        <div class="floating-data data5">🚀</div>
+        <div class="floating-data data6">🎯</div>
+        <div class="floating-data data7">🔮</div>
+        <div class="floating-data data8">🌟</div>
+        <div class="energy-wave wave1"></div>
+        <div class="energy-wave wave2"></div>
+        <div class="energy-wave wave3"></div>
     </div>
     
-    <div class="container">
-        <header class="header">
-            <h1 class="title animate-text-gradient">
-                <i class="fas fa-robot"></i> Rabs AI Prompt Refiner & Generator
-            </h1>
-            <p class="subtitle animate-subtitle">Masukkan ide awal Lu dan biarkan AI kami merapikan & memperbaikinya</p>
-        </header>
-        
-        <main class="main-content">
-            <div class="input-section animate-slide-up">
-                <div class="input-header">
-                    <h2><i class="fas fa-keyboard"></i> Masukkan Prompt Lu</h2>
-                    <div class="input-mode">
-                        <button class="mode-btn active" id="textModeBtn">
-                            <i class="fas fa-font"></i> Teks
-                        </button>
-                        <button class="mode-btn" id="voiceModeBtn">
-                            <i class="fas fa-microphone"></i> Suara
-                        </button>
+    <div class="premium-container">
+        <!-- Premium Header -->
+        <header class="premium-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo-icon animate-premium-glow">
+                        <i class="fas fa-crown"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h1 class="main-title animate-text-premium">
+                            <span class="gradient-text">AI</span> Prompt Refiner <span class="premium-badge">PREMIUM</span>
+                        </h1>
+                        <p class="tagline animate-subtitle-premium">Transformasikan ide Anda menjadi prompt AI yang profesional dan detail</p>
                     </div>
                 </div>
+                <div class="header-stats">
+                    <div class="stat-item">
+                        <i class="fas fa-bolt"></i>
+                        <span>50+ Animasi</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-microphone"></i>
+                        <span>Voice AI</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-brain"></i>
+                        <span>2 Model AI</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <main class="premium-main">
+            <!-- Input Section -->
+            <section class="input-section-premium">
+                <div class="section-header">
+                    <h2 class="section-title animate-title-float">
+                        <i class="fas fa-keyboard"></i>
+                        <span>Masukkan Prompt Anda</span>
+                    </h2>
+                    <div class="section-subtitle">Ketik atau gunakan suara untuk menginput ide Anda</div>
+                </div>
                 
-                <div class="prompt-input-container">
-                    <textarea id="userPrompt" placeholder="Contoh: buatkan saya code python untuk web scraping..." maxlength="1000"></textarea>
-                    <div class="input-footer">
-                        <div class="char-counter">
-                            <span id="charCount">0</span> / 1000 karakter
-                        </div>
-                        <div class="ai-actions">
-                            <button class="action-btn" id="improveBtn">
-                                <i class="fas fa-wand-magic-sparkles"></i> Rapikan Prompt
+                <div class="input-area">
+                    <div class="input-modes">
+                        <div class="mode-selector">
+                            <button class="mode-btn active" id="textModeBtn">
+                                <i class="fas fa-font"></i>
+                                <span>Teks</span>
                             </button>
-                            <button class="action-btn primary" id="generateBtn">
-                                <i class="fas fa-bolt"></i> Buat Prompt AI lu
+                            <button class="mode-btn" id="voiceModeBtn">
+                                <i class="fas fa-microphone"></i>
+                                <span>Suara</span>
+                            </button>
+                        </div>
+                        <div class="input-info">
+                            <div class="char-info">
+                                <i class="fas fa-text-height"></i>
+                                <span id="charCount">0</span>/1000 karakter
+                            </div>
+                            <button class="clear-btn" id="clearBtn">
+                                <i class="fas fa-eraser"></i>
+                                Bersihkan
                             </button>
                         </div>
                     </div>
                     
-                    <!-- Status Voice Recording -->
-                    <div class="voice-status" id="voiceStatus" style="display: none;">
-                        <div class="voice-indicator">
-                            <div class="pulse-ring"></div>
-                            <i class="fas fa-microphone"></i>
+                    <div class="textarea-container">
+                        <textarea id="userPrompt" placeholder="Contoh: bikinin saya kode python untuk web scraping website e-commerce..." maxlength="1000"></textarea>
+                        <div class="textarea-decoration"></div>
+                    </div>
+                    
+                    <!-- Voice Status -->
+                    <div class="voice-status-premium" id="voiceStatus">
+                        <div class="voice-visualizer">
+                            <div class="voice-bar bar1"></div>
+                            <div class="voice-bar bar2"></div>
+                            <div class="voice-bar bar3"></div>
+                            <div class="voice-bar bar4"></div>
+                            <div class="voice-bar bar5"></div>
                         </div>
-                        <div class="voice-text">
-                            <p>Mendengarkan... Silakan bicara sekarang</p>
-                            <div class="voice-time">
+                        <div class="voice-content">
+                            <div class="voice-header">
+                                <i class="fas fa-microphone animate-pulse"></i>
+                                <h4>Mendengarkan...</h4>
+                            </div>
+                            <p class="voice-text">Silakan bicara sekarang. Sistem akan mengkonversi suara Anda menjadi teks.</p>
+                            <div class="voice-timer">
                                 <i class="fas fa-clock"></i>
                                 <span id="recordingTime">00:00</span>
                             </div>
                         </div>
                         <button class="voice-stop-btn" id="stopVoiceBtn">
-                            <i class="fas fa-stop"></i> Stop
+                            <i class="fas fa-stop"></i>
+                            Stop
+                        </button>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="action-btn premium-btn" id="improveBtn">
+                            <i class="fas fa-wand-magic-sparkles"></i>
+                            <span>Rapikan Prompt</span>
+                            <div class="btn-glow"></div>
+                        </button>
+                        <button class="action-btn generate-btn" id="generateBtn">
+                            <i class="fas fa-bolt"></i>
+                            <span>Buat Prompt AI</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Model Selector -->
+            <section class="model-section-premium">
+                <div class="model-header">
+                    <h3>
+                        <i class="fas fa-sliders-h"></i>
+                        Pilih Model AI
+                    </h3>
+                    <div class="model-description">Pilih model yang sesuai dengan kebutuhan Anda</div>
+                </div>
+                
+                <div class="model-cards">
+                    <div class="model-card fast-model active" data-model="fast">
+                        <div class="model-card-inner">
+                            <div class="model-icon">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <div class="model-content">
+                                <h4>Model Cepat</h4>
+                                <div class="model-tag">Standar</div>
+                                <p class="model-desc">Perbaikan prompt dasar dengan output 2 paragraf</p>
+                                <ul class="model-features">
+                                    <li><i class="fas fa-check"></i> Response instan</li>
+                                    <li><i class="fas fa-check"></i> Output 2 paragraf</li>
+                                    <li><i class="fas fa-check"></i> Perbaikan tata bahasa</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="model-card advanced-model" data-model="advanced">
+                        <div class="model-card-inner">
+                            <div class="model-icon">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <div class="model-content">
+                                <h4>Model Lanjutan</h4>
+                                <div class="model-tag premium-tag">Premium</div>
+                                <p class="model-desc">Analisis mendalam dengan output 5 paragraf lengkap</p>
+                                <ul class="model-features">
+                                    <li><i class="fas fa-check"></i> Analisis kontekstual</li>
+                                    <li><i class="fas fa-check"></i> Output 5 paragraf</li>
+                                    <li><i class="fas fa-check"></i> Rekomendasi spesifik</li>
+                                    <li><i class="fas fa-check"></i> Optimasi untuk AI</li>
+                                    <li><i class="fas fa-check"></i> Contoh implementasi</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Result Section -->
+            <section class="result-section-premium">
+                <div class="result-header">
+                    <div class="result-title">
+                        <h3>
+                            <i class="fas fa-sparkles"></i>
+                            <span>Prompt yang Disempurnakan</span>
+                        </h3>
+                        <div class="result-subtitle">Hasil analisis dan perbaikan AI</div>
+                    </div>
+                    
+                    <div class="result-actions">
+                        <button class="action-btn copy-btn" id="copyBtn">
+                            <i class="fas fa-copy"></i>
+                            Salin ke Clipboard
+                        </button>
+                        <button class="action-btn save-btn" id="saveBtn">
+                            <i class="fas fa-save"></i>
+                            Simpan Prompt
                         </button>
                     </div>
                 </div>
                 
-                <div class="model-selector animate-fade-in">
-                    <div class="model-option active" data-model="fast">
-                        <div class="model-icon">
-                            <i class="fas fa-bolt"></i>
+                <div class="result-content">
+                    <div class="result-placeholder" id="promptPlaceholder">
+                        <div class="placeholder-icon">
+                            <i class="fas fa-arrow-up"></i>
                         </div>
-                        <div class="model-info">
-                            <h4>Model Cepat</h4>
-                            <p>Model cepat untuk respons langsung dan segera</p>
-                        </div>
-                    </div>
-                    <div class="model-option" data-model="advanced">
-                        <div class="model-icon">
-                            <i class="fas fa-brain"></i>
-                        </div>
-                        <div class="model-info">
-                            <h4>Model Lanjutan</h4>
-                            <p>Model lebih cerdas untuk hasil yang optimal</p>
+                        <div class="placeholder-content">
+                            <h4>Prompt Hasil Akan Muncul Di Sini</h4>
+                            <p>Masukkan prompt Anda di atas dan klik "Rapikan Prompt" untuk melihat hasil</p>
                         </div>
                     </div>
-                </div>
-            </div>
-            
-            <div class="result-section animate-slide-up delay-1">
-                <div class="result-header">
-                    <h3><i class="fas fa-sparkles"></i> Prompt yang Disempurnakan</h3>
-                    <button class="copy-btn" id="copyBtn">
-                        <i class="fas fa-copy"></i> Salin ke Clipboard
-                    </button>
-                </div>
-                
-                <div class="refined-prompt">
-                    <div class="prompt-placeholder" id="promptPlaceholder">
-                        <i class="fas fa-arrow-up"></i>
-                        <p>Prompt hasil perbaikan akan muncul di sini</p>
-                    </div>
-                    <div class="prompt-content" id="refinedPromptText" style="display: none;">
-                        <!-- Prompt hasil perbaikan akan dimuat di sini -->
+                    
+                    <div class="refined-prompt-premium" id="refinedPromptText" style="display: none;">
+                        <!-- Hasil akan dimuat di sini -->
                     </div>
                 </div>
                 
-                <div class="prompt-examples animate-slide-up delay-2">
-                    <h4><i class="fas fa-lightbulb"></i> Contoh Prompt yang Bisa Dicoba:</h4>
+                <!-- Prompt Examples -->
+                <div class="examples-section">
+                    <div class="examples-header">
+                        <h4>
+                            <i class="fas fa-lightbulb"></i>
+                            Contoh Prompt yang Bisa Dicoba
+                        </h4>
+                        <p>Klik salah satu untuk mencoba</p>
+                    </div>
+                    
                     <div class="examples-grid">
-                        <div class="example-card" data-prompt="bikinin saya kode python buat web scraping">
+                        <div class="example-card" data-prompt="bikinin saya kode python buat web scraping data produk dari e-commerce">
                             <div class="example-icon">
                                 <i class="fab fa-python"></i>
                             </div>
-                            <p>Buatkan saya kode Python untuk web scraping</p>
+                            <div class="example-content">
+                                <h5>Web Scraping Python</h5>
+                                <p>Buatkan kode Python untuk scraping data produk</p>
+                            </div>
                         </div>
-                        <div class="example-card" data-prompt="saya butuh bantuan buat nulis email ke client">
+                        
+                        <div class="example-card" data-prompt="saya butuh bantuan nulis email profesional ke client tentang update proyek">
                             <div class="example-icon">
                                 <i class="fas fa-envelope"></i>
                             </div>
-                            <p>Saya butuh bantuan menulis email ke klien</p>
-                        </div>
-                        <div class="example-card" data-prompt="cara buat aplikasi android sederhana">
-                            <div class="example-icon">
-                                <i class="fas fa-mobile-alt"></i>
+                            <div class="example-content">
+                                <h5>Email Profesional</h5>
+                                <p>Bantuan menulis email update proyek ke klien</p>
                             </div>
-                            <p>Cara membuat aplikasi Android sederhana</p>
                         </div>
-                        <div class="example-card" data-prompt="tolong jelaskan machine learning untuk pemula">
+                        
+                        <div class="example-card" data-prompt="tolong jelaskan cara kerja machine learning untuk pemula yang ga ngerti coding">
+                            <div class="example-icon">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <div class="example-content">
+                                <h5>ML untuk Pemula</h5>
+                                <p>Penjelasan machine learning untuk non-programmer</p>
+                            </div>
+                        </div>
+                        
+                        <div class="example-card" data-prompt="bantuin saya buat presentasi tentang teknologi AI untuk meeting bisnis">
                             <div class="example-icon">
                                 <i class="fas fa-chart-line"></i>
                             </div>
-                            <p>Tolong jelaskan machine learning untuk pemula</p>
+                            <div class="example-content">
+                                <h5>Presentasi AI</h5>
+                                <p>Membuat materi presentasi AI untuk bisnis</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
             
-            <div class="animation-section animate-slide-up delay-3">
-                <h3><i class="fas fa-film"></i> 20 Animasi yang Digunakan</h3>
-                <div class="animation-grid">
-                    <div class="anim-item animate-float">Float</div>
-                    <div class="anim-item animate-pulse">Pulse</div>
-                    <div class="anim-item animate-bounce">Bounce</div>
-                    <div class="anim-item animate-shake">Shake</div>
-                    <div class="anim-item animate-rotate">Rotate</div>
-                    <div class="anim-item animate-glow">Glow</div>
-                    <div class="anim-item animate-fade-in">Fade In</div>
-                    <div class="anim-item animate-fade-out">Fade Out</div>
-                    <div class="anim-item animate-slide-up">Slide Up</div>
-                    <div class="anim-item animate-slide-down">Slide Down</div>
-                    <div class="anim-item animate-slide-left">Slide Left</div>
-                    <div class="anim-item animate-slide-right">Slide Right</div>
-                    <div class="anim-item animate-scale">Scale</div>
-                    <div class="anim-item animate-spin">Spin</div>
-                    <div class="anim-item animate-wave">Wave</div>
-                    <div class="anim-item animate-flip">Flip</div>
-                    <div class="anim-item animate-text-gradient">Text Gradient</div>
-                    <div class="anim-item animate-typing">Typing</div>
-                    <div class="anim-item animate-color-change">Color Change</div>
-                    <div class="anim-item animate-border-flow">Border Flow</div>
+            <!-- History Section -->
+            <section class="history-section-premium">
+                <div class="history-header">
+                    <h4>
+                        <i class="fas fa-history"></i>
+                        Riwayat Prompt
+                    </h4>
+                    <button class="clear-history-btn" id="clearHistoryBtn">
+                        <i class="fas fa-trash"></i>
+                        Bersihkan
+                    </button>
                 </div>
-            </div>
+                
+                <div class="history-list" id="historyList">
+                    <!-- Riwayat akan dimuat di sini -->
+                </div>
+            </section>
         </main>
         
-        <footer class="footer animate-slide-up delay-4">
-            <p>AI Prompt Refiner &copy; 2023 | Sistem Merapikan & Generate Prompt AI By Rabs</p>
-            <div class="footer-stats">
-                <span><i class="fas fa-microphone"></i> Voice Recognition</span>
-                <span><i class="fas fa-brain"></i> 2 Model AI</span>
-                <span><i class="fas fa-magic"></i> 20 Animasi</span>
-                <span><i class="fas fa-bolt"></i> Real-time Processing</span>
+        <!-- Premium Footer -->
+        <footer class="premium-footer">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <i class="fas fa-robot"></i>
+                        <span>AI Prompt Refiner</span>
+                    </div>
+                    <p class="footer-tagline">Transformasikan ide menjadi realitas dengan AI</p>
+                </div>
+                
+                <div class="footer-info">
+                    <div class="footer-stats">
+                        <div class="footer-stat">
+                            <i class="fas fa-bolt"></i>
+                            <div>
+                                <div class="stat-number" id="processedCount">0</div>
+                                <div class="stat-label">Prompt Diproses</div>
+                            </div>
+                        </div>
+                        <div class="footer-stat">
+                            <i class="fas fa-clock"></i>
+                            <div>
+                                <div class="stat-number" id="timeSaved">0</div>
+                                <div class="stat-label">Menit Tersimpan</div>
+                            </div>
+                        </div>
+                        <div class="footer-stat">
+                            <i class="fas fa-chart-line"></i>
+                            <div>
+                                <div class="stat-number" id="successRate">100%</div>
+                                <div class="stat-label">Tingkat Keberhasilan</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="footer-copyright">
+                        <p>&copy; 2024 AI Prompt Refiner Premium. All rights reserved.</p>
+                        <p class="version">Versi 2.0 Premium • 50+ Animasi • Real-time Processing</p>
+                    </div>
+                </div>
             </div>
         </footer>
     </div>
     
-    <!-- Loading overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
+    <!-- Loading Overlay Premium -->
+    <div class="loading-overlay-premium" id="loadingOverlay">
         <div class="loading-content">
-            <div class="loading-spinner animate-spin"></div>
-            <p>AI sedang merapikan prompt Anda...</p>
-            <div class="loading-progress">
-                <div class="progress-bar"></div>
+            <div class="loading-animation">
+                <div class="loading-orb orb1"></div>
+                <div class="loading-orb orb2"></div>
+                <div class="loading-orb orb3"></div>
+                <div class="loading-center">
+                    <i class="fas fa-robot"></i>
+                </div>
             </div>
-            <p class="loading-tip" id="loadingTip"></p>
+            
+            <div class="loading-text">
+                <h4>AI Sedang Bekerja</h4>
+                <p id="loadingTip">Menganalisis prompt Anda...</p>
+                <div class="loading-progress">
+                    <div class="progress-bar"></div>
+                </div>
+                <div class="loading-stats">
+                    <span><i class="fas fa-brain"></i> <span id="currentModel">Model Cepat</span></span>
+                    <span><i class="fas fa-clock"></i> <span id="elapsedTime">0</span>s</span>
+                </div>
+            </div>
         </div>
     </div>
     
     <!-- Notification -->
-    <div class="notification" id="notification">
-        <i class="fas fa-check-circle"></i>
-        <span id="notificationText">Prompt berhasil disalin!</span>
+    <div class="notification-premium" id="notification">
+        <div class="notification-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="notification-content">
+            <h5 id="notificationTitle">Berhasil!</h5>
+            <p id="notificationText">Prompt berhasil disalin ke clipboard</p>
+        </div>
+        <div class="notification-progress"></div>
     </div>
     
     <!-- Voice Permission Modal -->
-    <div class="modal-overlay" id="permissionModal">
+    <div class="modal-premium" id="permissionModal">
         <div class="modal-content">
             <div class="modal-header">
-                <i class="fas fa-microphone"></i>
+                <div class="modal-icon">
+                    <i class="fas fa-microphone"></i>
+                </div>
                 <h3>Izin Akses Mikrofon</h3>
+                <p>Diperlukan untuk menggunakan fitur suara</p>
             </div>
+            
             <div class="modal-body">
-                <p>Aplikasi ini memerlukan akses ke mikrofon Anda untuk mengenali suara.</p>
-                <p>Klik "Izinkan" saat browser meminta izin akses mikrofon.</p>
                 <div class="permission-steps">
                     <div class="step">
                         <div class="step-number">1</div>
-                        <p>Klik tombol "Izinkan" di popup browser</p>
+                        <div class="step-content">
+                            <h5>Izinkan Akses</h5>
+                            <p>Klik "Izinkan" saat browser meminta akses mikrofon</p>
+                        </div>
                     </div>
                     <div class="step">
                         <div class="step-number">2</div>
-                        <p>Mulai berbicara setelah melihat indikator rekaman</p>
+                        <div class="step-content">
+                            <h5>Mulai Berbicara</h5>
+                            <p>Ucapkan prompt Anda dengan jelas setelah indikator muncul</p>
+                        </div>
                     </div>
                     <div class="step">
                         <div class="step-number">3</div>
-                        <p>Klik "Stop" setelah selesai berbicara</p>
+                        <div class="step-content">
+                            <h5>Hasil Otomatis</h5>
+                            <p>Sistem akan mengkonversi suara menjadi teks secara real-time</p>
+                        </div>
                     </div>
                 </div>
             </div>
+            
             <div class="modal-footer">
-                <button class="modal-btn secondary" id="cancelPermissionBtn">Batal</button>
-                <button class="modal-btn primary" id="requestPermissionBtn">Izinkan Mikrofon</button>
+                <button class="modal-btn secondary" id="cancelPermissionBtn">
+                    <i class="fas fa-times"></i>
+                    Batal
+                </button>
+                <button class="modal-btn primary" id="requestPermissionBtn">
+                    <i class="fas fa-check"></i>
+                    Izinkan Mikrofon
+                </button>
             </div>
         </div>
     </div>
